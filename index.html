@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FUTULAW - 2ª Edição</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <!-- Configuration & Custom Styles -->
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ["Outfit", "sans-serif"],
+              mono: [
+                "ui-monospace",
+                "SFMono-Regular",
+                "Menlo",
+                "Monaco",
+                "Consolas",
+                "Liberation Mono",
+                "Courier New",
+                "monospace",
+              ],
+            },
+            colors: {
+              futulaw: {
+                bg: "#05010a",
+                pink: "#ec4899",
+                cyan: "#00e6ff",
+              },
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      body {
+        background-color: #05010a;
+        color: #f4f4f5;
+        overflow-x: hidden;
+        font-family: "Outfit", sans-serif;
+      }
+      .mesh-cyan {
+        position: absolute;
+        top: -20%;
+        left: -10%;
+        width: 50vw;
+        height: 50vw;
+        border-radius: 50%;
+        background: rgba(0, 230, 255, 0.1);
+        filter: blur(120px);
+        animation: pulse-slow 8s infinite alternate;
+        z-index: -1;
+      }
+      .mesh-pink {
+        position: absolute;
+        top: 40%;
+        right: -20%;
+        width: 60vw;
+        height: 60vw;
+        border-radius: 50%;
+        background: rgba(236, 72, 153, 0.15);
+        filter: blur(150px);
+        animation: pulse-slow 10s infinite alternate-reverse;
+        z-index: -1;
+      }
+      @keyframes pulse-slow {
+        0% {
+          transform: scale(1);
+          opacity: 0.2;
+        }
+        100% {
+          transform: scale(1.1);
+          opacity: 0.3;
+        }
+      }
+      .liquid-glass {
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.1),
+          0 20px 40px -15px rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+      }
+      .glass-hover:hover {
+        background: rgba(255, 255, 255, 0.04);
+      }
+      /* Simple Animation Cascade */
+      .stagger-reveal > * {
+        opacity: 0;
+        transform: translateY(20px);
+        animation: reveal 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      }
+      @keyframes reveal {
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .stagger-reveal > *:nth-child(1) {
+        animation-delay: 0.1s;
+      }
+      .stagger-reveal > *:nth-child(2) {
+        animation-delay: 0.2s;
+      }
+      .stagger-reveal > *:nth-child(3) {
+        animation-delay: 0.3s;
+      }
+      .stagger-reveal > *:nth-child(4) {
+        animation-delay: 0.4s;
+      }
+      .stagger-reveal > *:nth-child(5) {
+        animation-delay: 0.5s;
+      }
+    </style>
+  </head>
+  <body
+    class="selection:bg-pink-500 selection:text-white relative min-h-[100dvh]"
+  >
+    <!-- Background Effects -->
+    <div class="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+      <div class="mesh-cyan"></div>
+      <div class="mesh-pink"></div>
+      <div
+        class="absolute inset-0 opacity-[0.03] mix-blend-overlay"
+        style="
+          background-image: url(&quot;https://grainy-gradients.vercel.app/noise.svg&quot;);
+        "
+      ></div>
+    </div>
+
+    <!-- Main Content -->
+    <main
+      class="relative z-10 w-full max-w-[1400px] mx-auto px-6 py-12 md:py-24 grid grid-cols-1 lg:grid-cols-12 gap-16 lg:gap-8 items-center min-h-[100dvh]"
+    >
+      <!-- LEFT: Hero Context -->
+      <div
+        class="lg:col-span-7 flex flex-col justify-center items-start pt-12 md:pt-0 stagger-reveal"
+      >
+        <div
+          class="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/10 bg-white/5 backdrop-blur-md mb-8"
+        >
+          <span class="w-2 h-2 rounded-full bg-[#00e6ff] animate-pulse"></span>
+          <span class="text-sm font-medium tracking-wide text-zinc-300"
+            >2ª EDIÇÃO CONFIRMADA</span
+          >
+        </div>
+
+        <h1
+          class="text-6xl md:text-8xl font-bold tracking-tighter leading-[0.9] mb-6"
+        >
+          FUTU<span
+            class="text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-[#b01060]"
+            >LAW</span
+          >
+        </h1>
+
+        <p
+          class="text-xl md:text-2xl text-zinc-400 font-light max-w-[50ch] leading-relaxed mb-10"
+        >
+          Seminário de Gestão e de Inovação para Escritórios de Advocacia. A
+          intersecção definitiva entre direito, tecnologia e controladoria.
+        </p>
+
+        <div class="flex flex-col sm:flex-row gap-6 mb-12 w-full">
+          <div class="flex items-center gap-4 border-l-2 border-[#16d9e3] pl-4">
+            <i class="ph-light ph-calendar-blank text-3xl text-[#16d9e3]"></i>
+            <div>
+              <p
+                class="font-mono text-lg text-zinc-200 uppercase tracking-widest leading-none"
+              >
+                30 & 31
+              </p>
+              <p
+                class="text-zinc-500 text-sm font-semibold uppercase tracking-wider mt-1"
+              >
+                Outubro
+              </p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-4 border-l-2 border-zinc-700 pl-4">
+            <i class="ph-light ph-map-pin text-3xl text-zinc-400"></i>
+            <div>
+              <p
+                class="font-mono text-lg text-zinc-200 tracking-widest leading-none"
+              >
+                OAB
+              </p>
+              <p
+                class="text-zinc-500 text-sm font-semibold uppercase tracking-wider mt-1"
+              >
+                Maringá
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <button
+          class="group relative flex items-center justify-between gap-6 bg-zinc-100 text-zinc-950 px-8 py-5 rounded-full font-semibold tracking-wide text-lg overflow-hidden transition-all hover:bg-white hover:-translate-y-1 hover:shadow-[0_0_40px_-10px_rgba(236,72,153,0.4)] active:scale-95 active:translate-y-0"
+        >
+          <span class="relative z-10 inline-flex items-center gap-3">
+            Garantir Credencial
+            <i
+              class="ph-bold ph-arrow-right text-xl transition-transform group-hover:translate-x-1"
+            ></i>
+          </span>
+        </button>
+      </div>
+
+      <!-- RIGHT: Countdown & Cards -->
+      <div class="lg:col-span-5 flex flex-col gap-8 w-full stagger-reveal">
+        <!-- Countdown Panel -->
+        <div class="w-full relative rounded-[2rem] p-8 liquid-glass">
+          <div
+            class="flex items-center justify-between mb-8 pb-6 border-b border-white/10"
+          >
+            <h3
+              class="text-lg font-medium text-zinc-300 flex items-center gap-3"
+            >
+              <i class="ph-duotone ph-clock text-2xl text-pink-500"></i>
+              Início do Evento
+            </h3>
+            <span
+              class="font-mono text-sm text-[#00e6ff] px-3 py-1 bg-[#00e6ff]/10 rounded-full border border-[#00e6ff]/20"
+            >
+              Lote 1 Aberto
+            </span>
+          </div>
+
+          <div class="grid grid-cols-4 gap-3 md:gap-4 text-center">
+            <div
+              class="flex flex-col items-center justify-center p-4 md:p-6 rounded-2xl liquid-glass glass-hover transition-colors"
+            >
+              <span
+                id="t-days"
+                class="font-mono text-3xl md:text-5xl font-light text-white tracking-tighter"
+                >00</span
+              >
+              <span
+                class="text-[10px] md:text-xs font-semibold tracking-widest text-zinc-500 uppercase mt-2"
+                >Dias</span
+              >
+            </div>
+            <div
+              class="flex flex-col items-center justify-center p-4 md:p-6 rounded-2xl liquid-glass glass-hover transition-colors"
+            >
+              <span
+                id="t-hours"
+                class="font-mono text-3xl md:text-5xl font-light text-white tracking-tighter"
+                >00</span
+              >
+              <span
+                class="text-[10px] md:text-xs font-semibold tracking-widest text-zinc-500 uppercase mt-2"
+                >Horas</span
+              >
+            </div>
+            <div
+              class="flex flex-col items-center justify-center p-4 md:p-6 rounded-2xl liquid-glass glass-hover transition-colors"
+            >
+              <span
+                id="t-mins"
+                class="font-mono text-3xl md:text-5xl font-light text-white tracking-tighter"
+                >00</span
+              >
+              <span
+                class="text-[10px] md:text-xs font-semibold tracking-widest text-zinc-500 uppercase mt-2"
+                >Min.</span
+              >
+            </div>
+            <div
+              class="flex flex-col items-center justify-center p-4 md:p-6 rounded-2xl liquid-glass glass-hover transition-colors"
+            >
+              <span
+                id="t-secs"
+                class="font-mono text-3xl md:text-5xl font-light text-white tracking-tighter"
+                >00</span
+              >
+              <span
+                class="text-[10px] md:text-xs font-semibold tracking-widest text-zinc-500 uppercase mt-2"
+                >Seg.</span
+              >
+            </div>
+          </div>
+        </div>
+
+        <!-- Partners Panel -->
+        <div class="w-full relative rounded-[2rem] p-8 liquid-glass">
+          <div class="flex items-center gap-4 mb-4">
+            <div class="p-3 rounded-xl bg-zinc-800/50 border border-white/5">
+              <i class="ph-duotone ph-handshake text-3xl text-zinc-300"></i>
+            </div>
+            <h3 class="text-xl font-medium tracking-tight">
+              Patrocinadores & Parceiros
+            </h3>
+          </div>
+          <p class="text-zinc-500 text-sm leading-relaxed mb-6">
+            Agradecemos aos nossos expositores pela confiança no futuro da
+            gestão advocatícia.
+          </p>
+
+          <div class="flex flex-wrap gap-4">
+            <div
+              class="h-10 w-24 rounded-lg bg-zinc-800/50 animate-pulse border border-white/5"
+            ></div>
+            <div
+              class="h-10 w-32 rounded-lg bg-zinc-800/50 animate-pulse border border-white/5"
+            ></div>
+            <div
+              class="h-10 w-20 rounded-lg bg-zinc-800/50 animate-pulse border border-white/5"
+            ></div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <script>
+      // Countdown Engine
+      const targetDate = new Date("2026-10-30T08:00:00").getTime();
+
+      function updateTimer() {
+        const now = new Date().getTime();
+        const difference = targetDate - now;
+
+        if (difference > 0) {
+          document.getElementById("t-days").innerText = String(
+            Math.floor(difference / (1000 * 60 * 60 * 24)),
+          ).padStart(2, "0");
+          document.getElementById("t-hours").innerText = String(
+            Math.floor((difference / (1000 * 60 * 60)) % 24),
+          ).padStart(2, "0");
+          document.getElementById("t-mins").innerText = String(
+            Math.floor((difference / 1000 / 60) % 60),
+          ).padStart(2, "0");
+          document.getElementById("t-secs").innerText = String(
+            Math.floor((difference / 1000) % 60),
+          ).padStart(2, "0");
+        }
+      }
+
+      setInterval(updateTimer, 1000);
+      updateTimer();
+    </script>
+  </body>
+</html>
