@@ -74,18 +74,39 @@ export default function FutuLawPage() {
         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.04] mix-blend-overlay" />
       </div>
 
+      {/* HEADER MODERN */}
+      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 bg-[#05010a]/60 backdrop-blur-xl border-b border-white/5">
+        <div className="flex items-center">
+          {/* Placeholder do Logotipo OAB */}
+          <div className="w-[140px] h-[40px] rounded-md bg-white/5 border border-white/10 flex items-center justify-center relative overflow-hidden group cursor-default">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
+            <span className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase">
+              Logo OAB
+            </span>
+          </div>
+        </div>
+        <nav className="hidden md:flex items-center gap-8">
+          <a href="#" className="text-xs font-semibold tracking-widest uppercase text-zinc-400 hover:text-white transition-colors">O Evento</a>
+          <a href="#" className="text-xs font-semibold tracking-widest uppercase text-zinc-400 hover:text-white transition-colors">Programação</a>
+          <a href="#" className="text-xs font-semibold tracking-widest uppercase text-zinc-400 hover:text-white transition-colors">Local</a>
+        </nav>
+        <button className="px-6 py-2 rounded-full text-xs font-bold tracking-widest text-white border border-[#ec4899]/50 bg-[#ec4899]/10 hover:bg-[#ec4899] transition-all uppercase shadow-[0_0_20px_-5px_rgba(236,72,153,0.3)] hover:shadow-[0_0_20px_0px_rgba(236,72,153,0.5)]">
+          Inscreva-se
+        </button>
+      </header>
+
       {/* 2 & 3. LAYER: HERO CONTENT & NEON CIRCLE (Structurally Centered) */}
-      <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 min-h-[100dvh] flex flex-col items-center justify-center pt-20 pb-24">
+      <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 min-h-[100dvh] flex flex-col items-center justify-center pt-32 pb-24">
         
         {/* HERO SECTION: Circle + Typography perfectly aligned */}
-        <div className="relative w-full flex flex-col items-center justify-center py-24 mb-8 mt-12">
+        <div className="relative w-full flex flex-col items-center justify-center py-20 mb-8 mt-4">
           
           {/* Neon Tech Circle background - Let it stay behind but WITHOUT solid bg inside! */}
           <motion.div 
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 1.5, ease: "easeOut" }}
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[110vw] sm:w-[85vw] md:w-[70vw] max-w-[800px] aspect-square z-0 rounded-full border-[3px] border-transparent pointer-events-none"
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[100vw] sm:w-[80vw] md:w-[70vw] max-w-[650px] aspect-square z-0 rounded-full border-[3px] border-transparent pointer-events-none"
             style={{
               background: 'linear-gradient(#05010a, #05010a) padding-box, linear-gradient(to top right, #00e6ff, #8b5cf6, #ec4899) border-box',
               boxShadow: '0 0 140px -20px rgba(236,72,153,0.3), inset 0 0 100px -20px rgba(0,230,255,0.1)'
