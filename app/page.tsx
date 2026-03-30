@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef } from "react";
 
 import { motion, useScroll, useSpring, useMotionValueEvent } from "framer-motion";
 import { Handshake, CalendarBlank, MapPin, ArrowRight } from "@phosphor-icons/react";
@@ -31,11 +31,9 @@ const useCountdown = (targetDate: Date) => {
   return timeLeft;
 };
 
-// --- VIDEO LOADING: SHIMMER SKELETON APPROACH ---
-// Instead of placeholder images (which may not match the video), 
-// use a shimmer skeleton with gradient that matches the site aesthetic
-
-// --- HOOK: SCROLL-BASED VIDEO WITH CROSS-BROWSER SUPPORT ---
+// --- HOOK: SCROLL-BASED VIDEO (SIMPLIFIED & ROBUST) ---
+// For smooth scrubbing, the VIDEO must be encoded with keyframes every 1-2 frames
+// Use the script: scripts/optimize-video-for-scrubbing.sh
 const useScrollVideo = (
   containerRef: React.RefObject<HTMLDivElement | null>,
   videoRef: React.RefObject<HTMLVideoElement | null>
@@ -43,158 +41,62 @@ const useScrollVideo = (
   const [isVideoReady, setIsVideoReady] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const durationRef = useRef(0);
-  const lastTimeRef = useRef(0);
-  const isSeekingRef = useRef(false);
-  const isMobileRef = useRef(false);
-  const retryCountRef = useRef(0);
 
-  // Detect mobile/iOS
+  // Simple initialization - let the browser handle loading naturally
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      isMobileRef.current = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    }
-  }, []);
-
-  // Initialize video with better cross-browser handling
-  const initializeVideo = useCallback(async () => {
     const video = videoRef.current;
     if (!video) return;
 
-    try {
-      // Set essential attributes for iOS/mobile
-      video.muted = true;
-      video.playsInline = true;
-      video.preload = "metadata"; // Start with metadata, then upgrade
-      video.setAttribute("webkit-playsinline", "true");
-      video.setAttribute("x5-playsinline", "true");
-      video.setAttribute("x5-video-player-type", "h5");
-      
-      // Set source directly (avoid blob URLs for iOS compatibility)
-      if (!video.src || !video.src.includes("gavel_scrub.mp4")) {
-        video.src = "/videos/gavel_scrub.mp4";
-      }
-
-      // Wait for metadata first (much faster than full load)
-      await new Promise<void>((resolve, reject) => {
-        const timeoutId = setTimeout(() => {
-          // Don't reject on timeout - video might still work with poster
-          resolve();
-        }, 10000);
-
-        const handleMetadata = () => {
-          clearTimeout(timeoutId);
-          video.removeEventListener("loadedmetadata", handleMetadata);
-          video.removeEventListener("error", handleError);
-          resolve();
-        };
-
-        const handleError = () => {
-          clearTimeout(timeoutId);
-          video.removeEventListener("loadedmetadata", handleMetadata);
-          video.removeEventListener("error", handleError);
-          reject(new Error("Video load error"));
-        };
-
-        // Check if already has metadata
-        if (video.readyState >= 1) {
-          clearTimeout(timeoutId);
-          resolve();
-          return;
-        }
-
-        video.addEventListener("loadedmetadata", handleMetadata);
-        video.addEventListener("error", handleError);
-        video.load();
-      });
-
-      // Store duration (use fallback if not available)
-      durationRef.current = video.duration > 0 ? video.duration : 5;
-      
-      // iOS Safari workaround: Need to "prime" the video with a play/pause
-      try {
-        const playPromise = video.play();
-        if (playPromise !== undefined) {
-          await playPromise;
-          video.pause();
-          video.currentTime = 0;
-        }
-      } catch {
-        // Play was prevented, which is fine
-        video.pause();
-        video.currentTime = 0;
-      }
-      
+    const handleCanPlay = () => {
+      durationRef.current = video.duration || 5;
       setIsVideoReady(true);
-      setLoadError(null);
-    } catch (error) {
-      // On error, still show the poster but don't crash
-      console.warn("Video initialization warning:", error);
-      
-      // Retry logic (max 2 attempts)
-      if (retryCountRef.current < 2) {
-        retryCountRef.current++;
-        setTimeout(() => initializeVideo(), 2000);
-      } else {
-        // Even on failure, keep poster visible - don't show error unless critical
-        // The poster provides good fallback UX
-        durationRef.current = 5; // Fallback duration
-      }
+      video.pause();
+      video.currentTime = 0;
+    };
+
+    const handleError = () => {
+      setLoadError("Erro ao carregar vídeo");
+    };
+
+    // If already loaded
+    if (video.readyState >= 3) {
+      handleCanPlay();
+      return;
     }
+
+    video.addEventListener("canplay", handleCanPlay);
+    video.addEventListener("error", handleError);
+
+    return () => {
+      video.removeEventListener("canplay", handleCanPlay);
+      video.removeEventListener("error", handleError);
+    };
   }, [videoRef]);
 
-  // Setup video on mount
-  useEffect(() => {
-    initializeVideo();
-  }, [initializeVideo]);
-
   // Scroll progress with Framer Motion
-  // layoutScroll: true tells Framer Motion the container handles its own scroll context
   const { scrollYProgress } = useScroll({
     target: containerRef,
-    offset: ["start start", "end end"],
-    layoutEffect: false // Prevents position warning by deferring measurement
+    offset: ["start start", "end end"]
   });
 
   // Smooth spring for animation
   const smoothProgress = useSpring(scrollYProgress, {
-    stiffness: isMobileRef.current ? 30 : 40,
-    damping: isMobileRef.current ? 20 : 15,
+    stiffness: 50,
+    damping: 20,
     restDelta: 0.001
   });
 
-  // Update video time based on scroll
+  // Update video time based on scroll - simple and direct
   useMotionValueEvent(smoothProgress, "change", (latest) => {
     const video = videoRef.current;
     if (!video || !isVideoReady || durationRef.current <= 0) return;
     
     const targetTime = latest * durationRef.current;
-    
-    // Prevent too frequent updates (especially on mobile)
     if (!Number.isFinite(targetTime)) return;
     
-    // Throttle updates - only update if difference is significant
-    const timeDiff = Math.abs(targetTime - lastTimeRef.current);
-    const threshold = isMobileRef.current ? 0.08 : 0.03;
-    
-    if (timeDiff < threshold) return;
-    
-    // Don't update if already seeking
-    if (isSeekingRef.current) return;
-    
-    lastTimeRef.current = targetTime;
-    
-    // Use requestAnimationFrame for smoother updates
-    requestAnimationFrame(() => {
-      if (video && !video.seeking) {
-        isSeekingRef.current = true;
-        video.currentTime = targetTime;
-        
-        // Reset seeking flag after a short delay
-        setTimeout(() => {
-          isSeekingRef.current = false;
-        }, isMobileRef.current ? 50 : 16);
-      }
-    });
+    // Direct assignment - the video encoding handles smoothness
+    // With proper keyframe interval (-g 2), this will be smooth
+    video.currentTime = targetTime;
   });
 
   return { isVideoReady, loadError };
@@ -267,7 +169,7 @@ export default function FutuLawPage() {
       </header>
 
       {/* SCROLL-DRIVEN VIDEO HERO SECTION */}
-      <div ref={containerRef} className="relative h-[400vh] w-full">
+      <section ref={containerRef} style={{ position: 'relative' }} className="h-[400vh] w-full">
         {/* Sticky Container */}
         <div className="sticky top-0 h-screen w-full overflow-hidden flex items-center bg-[#05010a]" style={{ position: 'sticky' }}>
           
