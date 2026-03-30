@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import Image from "next/image";
 import { motion, useScroll, useSpring, useMotionValueEvent } from "framer-motion";
 import { Handshake, CalendarBlank, MapPin, ArrowRight } from "@phosphor-icons/react";
 
@@ -123,14 +124,19 @@ export default function FutuLawPage() {
     <div className="relative min-w-full bg-[#05010a] text-zinc-100 font-sans selection:bg-[#ec4899] selection:text-white">
       
       {/* HEADER MODERN */}
-      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 bg-[#05010a]/60 backdrop-blur-xl border-b border-white/5">
-        <div className="flex items-center">
-          {/* Placeholder do Logotipo OAB */}
-          <div className="w-[140px] h-[40px] rounded-md bg-white/5 border border-white/10 flex items-center justify-center relative overflow-hidden group cursor-default">
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
-            <span className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase">
-              Logo OAB
-            </span>
+      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-2 bg-[#05010a]/60 backdrop-blur-xl border-b border-white/5">
+        <div className="flex items-center cursor-pointer group">
+          {/* Logotipo Oficial */}
+          <div className="relative flex items-center justify-center transition-all duration-300 ease-out hover:drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]">
+            <Image 
+              src="/videos/images/logo.png" 
+              alt="Logo Oficial OAB" 
+              width={180} 
+              height={50} 
+              quality={100}
+              priority
+              className="object-contain h-10 w-auto transition-transform duration-500 will-change-transform group-hover:scale-[1.03]"
+            />
           </div>
         </div>
         <nav className="hidden md:flex items-center gap-8">
@@ -138,8 +144,12 @@ export default function FutuLawPage() {
           <a href="#" className="text-xs font-semibold tracking-widest uppercase text-zinc-400 hover:text-white transition-colors">Programação</a>
           <a href="#" className="text-xs font-semibold tracking-widest uppercase text-zinc-400 hover:text-white transition-colors">Local</a>
         </nav>
-        <button className="px-6 py-2 rounded-full text-xs font-bold tracking-widest text-white border border-[#ec4899]/50 bg-[#ec4899]/10 hover:bg-[#ec4899] transition-all uppercase shadow-[0_0_20px_-5px_rgba(236,72,153,0.3)] hover:shadow-[0_0_20px_0px_rgba(236,72,153,0.5)]">
+        <button className="group relative px-6 py-2 rounded-full text-xs font-bold tracking-widest text-white border border-[#ec4899]/50 bg-[#ec4899]/10 hover:bg-[#ec4899] transition-all uppercase shadow-[0_0_20px_-5px_rgba(236,72,153,0.3)] hover:shadow-[0_0_20px_0px_rgba(236,72,153,0.5)] cursor-default">
           Inscreva-se
+          {/* Tooltip */}
+          <span className="absolute top-full mt-4 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-zinc-900 text-zinc-200 text-xs whitespace-nowrap rounded-md border border-zinc-800 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none shadow-xl normal-case tracking-normal font-medium z-50">
+            Inscrição em breve
+          </span>
         </button>
       </header>
 
@@ -301,10 +311,14 @@ export default function FutuLawPage() {
               <motion.button 
                 whileHover={{ scale: 1.02, y: -2 }}
                 whileTap={{ scale: 0.98 }}
-                className="mt-10 group relative flex items-center gap-4 bg-zinc-100 text-zinc-950 px-8 py-4 rounded-full font-semibold tracking-wide overflow-hidden transition-shadow hover:shadow-[0_0_40px_-10px_rgba(236,72,153,0.4)]"
+                className="mt-10 group relative flex items-center gap-4 bg-zinc-100 text-zinc-950 px-8 py-4 rounded-full font-semibold tracking-wide transition-shadow hover:shadow-[0_0_40px_-10px_rgba(236,72,153,0.4)] cursor-default"
               >
                 Inscreva-se Agora
                 <ArrowRight size={18} weight="bold" className="group-hover:translate-x-1 transition-transform" />
+                {/* Tooltip */}
+                <span className="absolute bottom-full mb-4 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-zinc-900 text-zinc-200 text-xs whitespace-nowrap rounded-md border border-zinc-800 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none shadow-xl normal-case tracking-normal font-medium z-50">
+                  Inscrição em breve
+                </span>
               </motion.button>
             </motion.div>
 
