@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
 import { motion, useScroll, useSpring, useMotionValueEvent } from "framer-motion";
 import { Handshake, CalendarBlank, MapPin, ArrowRight } from "@phosphor-icons/react";
@@ -31,6 +31,174 @@ const useCountdown = (targetDate: Date) => {
   return timeLeft;
 };
 
+// --- HOOK: SCROLL-BASED VIDEO WITH CROSS-BROWSER SUPPORT ---
+const useScrollVideo = (
+  containerRef: React.RefObject<HTMLDivElement | null>,
+  videoRef: React.RefObject<HTMLVideoElement | null>
+) => {
+  const [isVideoLoaded, setIsVideoLoaded] = useState(false);
+  const [isVideoReady, setIsVideoReady] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const durationRef = useRef(0);
+  const lastTimeRef = useRef(0);
+  const isSeekingRef = useRef(false);
+  const isMobileRef = useRef(false);
+  const retryCountRef = useRef(0);
+
+  // Detect mobile/iOS
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      isMobileRef.current = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    }
+  }, []);
+
+  // Initialize video with better cross-browser handling
+  const initializeVideo = useCallback(async () => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    try {
+      // Set essential attributes for iOS/mobile
+      video.muted = true;
+      video.playsInline = true;
+      video.preload = "auto";
+      video.setAttribute("webkit-playsinline", "true");
+      video.setAttribute("x5-playsinline", "true");
+      video.setAttribute("x5-video-player-type", "h5");
+      
+      // Clear any previous source and set directly (avoid blob URLs for iOS compatibility)
+      video.src = "/videos/gavel_scrub.mp4";
+      
+      // Force load
+      video.load();
+
+      // iOS Safari workaround: Need to "prime" the video with a play/pause
+      const primeVideo = async () => {
+        try {
+          // Brief play to initialize video decoder
+          const playPromise = video.play();
+          if (playPromise !== undefined) {
+            await playPromise;
+            // Immediately pause
+            video.pause();
+            video.currentTime = 0;
+          }
+        } catch {
+          // Play was prevented, which is fine - video is still primed
+          video.pause();
+          video.currentTime = 0;
+        }
+      };
+
+      // Wait for data to be loaded
+      await new Promise<void>((resolve, reject) => {
+        const timeoutId = setTimeout(() => {
+          reject(new Error("Video load timeout"));
+        }, 15000);
+
+        const handleLoaded = () => {
+          clearTimeout(timeoutId);
+          video.removeEventListener("loadeddata", handleLoaded);
+          video.removeEventListener("error", handleError);
+          resolve();
+        };
+
+        const handleError = () => {
+          clearTimeout(timeoutId);
+          video.removeEventListener("loadeddata", handleLoaded);
+          video.removeEventListener("error", handleError);
+          reject(new Error("Video load error"));
+        };
+
+        // Check if already loaded
+        if (video.readyState >= 2) {
+          clearTimeout(timeoutId);
+          resolve();
+          return;
+        }
+
+        video.addEventListener("loadeddata", handleLoaded);
+        video.addEventListener("error", handleError);
+      });
+
+      // Store duration
+      durationRef.current = video.duration;
+      
+      // Prime video for iOS
+      await primeVideo();
+      
+      setIsVideoLoaded(true);
+      setIsVideoReady(true);
+      setLoadError(null);
+    } catch (error) {
+      console.error("[v0] Video initialization failed:", error);
+      
+      // Retry logic (max 3 attempts)
+      if (retryCountRef.current < 3) {
+        retryCountRef.current++;
+        setTimeout(() => initializeVideo(), 1000);
+      } else {
+        setLoadError("Video failed to load. Please refresh the page.");
+      }
+    }
+  }, [videoRef]);
+
+  // Setup video on mount
+  useEffect(() => {
+    initializeVideo();
+  }, [initializeVideo]);
+
+  // Scroll progress with Framer Motion
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ["start start", "end end"]
+  });
+
+  // Smooth spring for animation
+  const smoothProgress = useSpring(scrollYProgress, {
+    stiffness: isMobileRef.current ? 30 : 40,
+    damping: isMobileRef.current ? 20 : 15,
+    restDelta: 0.001
+  });
+
+  // Update video time based on scroll
+  useMotionValueEvent(smoothProgress, "change", (latest) => {
+    const video = videoRef.current;
+    if (!video || !isVideoReady || durationRef.current <= 0) return;
+    
+    const targetTime = latest * durationRef.current;
+    
+    // Prevent too frequent updates (especially on mobile)
+    if (!Number.isFinite(targetTime)) return;
+    
+    // Throttle updates - only update if difference is significant
+    const timeDiff = Math.abs(targetTime - lastTimeRef.current);
+    const threshold = isMobileRef.current ? 0.08 : 0.03;
+    
+    if (timeDiff < threshold) return;
+    
+    // Don't update if already seeking
+    if (isSeekingRef.current) return;
+    
+    lastTimeRef.current = targetTime;
+    
+    // Use requestAnimationFrame for smoother updates
+    requestAnimationFrame(() => {
+      if (video && !video.seeking) {
+        isSeekingRef.current = true;
+        video.currentTime = targetTime;
+        
+        // Reset seeking flag after a short delay
+        setTimeout(() => {
+          isSeekingRef.current = false;
+        }, isMobileRef.current ? 50 : 16);
+      }
+    });
+  });
+
+  return { isVideoLoaded, isVideoReady, loadError };
+};
+
 // --- COMPONENT: LIQUID GLASS TIMER BLOCK ---
 const TimeBlock = ({ label, value }: { label: string; value: number }) => (
   <div className="relative flex flex-col items-center justify-center p-4 md:p-6 rounded-[1.5rem] bg-white/[0.01] border border-white/5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-md overflow-hidden group">
@@ -51,64 +219,9 @@ export default function FutuLawPage() {
 
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [duration, setDuration] = useState(0);
-  const [isVideoLoaded, setIsVideoLoaded] = useState(false);
 
-  // Mágica para não travar: Transformar o vídeo em um Blob na memória
-  useEffect(() => {
-    let objectUrl = "";
-    
-    // Agora usando o vídeo re-renderizado com FFmpeg para scrubbing liso
-    const loadVideo = async () => {
-      try {
-        const response = await fetch("/videos/gavel_scrub.mp4");
-        const blob = await response.blob();
-        objectUrl = URL.createObjectURL(blob);
-        if (videoRef.current) {
-          videoRef.current.src = objectUrl;
-          videoRef.current.load();
-        }
-      } catch (err) {
-        console.error("Erro ao carregar o vídeo para o buffer", err);
-      }
-    };
-    
-    loadVideo();
-
-    return () => {
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
-    };
-  }, []);
-
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ["start start", "end end"]
-  });
-
-  const smoothProgress = useSpring(scrollYProgress, {
-    stiffness: 40,
-    damping: 15,
-    restDelta: 0.001
-  });
-
-  useMotionValueEvent(smoothProgress, "change", (latest) => {
-    if (videoRef.current && duration > 0 && isVideoLoaded) {
-      // Usar Number.isFinite evita NaNs silenciosos se o vídeo estiver preparando
-      const targetTime = latest * duration;
-      if (Number.isFinite(targetTime)) {
-        videoRef.current.currentTime = targetTime;
-      }
-    }
-  });
-
-  const handleLoadedMetadata = () => {
-    if (videoRef.current) {
-      setDuration(videoRef.current.duration);
-      setIsVideoLoaded(true);
-      videoRef.current.pause();
-      videoRef.current.currentTime = 0;
-    }
-  };
+  // Use the robust cross-browser scroll video hook
+  const { isVideoLoaded, isVideoReady, loadError } = useScrollVideo(containerRef, videoRef);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -121,7 +234,7 @@ export default function FutuLawPage() {
   };
 
   return (
-    <div className="relative min-w-full bg-[#05010a] text-zinc-100 font-sans selection:bg-[#ec4899] selection:text-white">
+    <div className="relative min-w-full bg-[#05010a] text-zinc-100 font-sans selection:bg-[#ec4899] selection:text-white" style={{ position: 'relative' }}>
       
       {/* HEADER MODERN */}
       <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-2 bg-[#05010a]/60 backdrop-blur-xl border-b border-white/5">
@@ -133,8 +246,8 @@ export default function FutuLawPage() {
               alt="Logo Oficial OAB" 
               width={180} 
               height={50} 
-              quality={100}
               priority
+              unoptimized
               className="object-contain h-10 w-auto transition-transform duration-500 will-change-transform group-hover:scale-[1.03]"
             />
           </div>
@@ -154,7 +267,7 @@ export default function FutuLawPage() {
       </header>
 
       {/* SCROLL-DRIVEN VIDEO HERO SECTION */}
-      <div ref={containerRef} className="relative h-[400vh] w-full">
+      <div ref={containerRef} className="relative h-[400vh] w-full" style={{ position: 'relative' }}>
         {/* Sticky Container */}
         <div className="sticky top-0 h-screen w-full overflow-hidden flex items-center bg-[#05010a]">
           
@@ -164,17 +277,35 @@ export default function FutuLawPage() {
             <div className="absolute inset-0 w-full h-full lg:w-[70%] lg:left-auto lg:right-0">
               <video 
                 ref={videoRef}
-                className={`w-full h-full object-cover transition-opacity duration-1000 ${isVideoLoaded ? 'opacity-100' : 'opacity-0'}`}
+                className={`w-full h-full object-cover transition-opacity duration-1000 ${isVideoReady ? 'opacity-100' : 'opacity-0'}`}
                 muted
                 playsInline
                 preload="auto"
-                onLoadedMetadata={handleLoadedMetadata}
-              />
+                webkit-playsinline="true"
+                x5-playsinline="true"
+              >
+                {/* Fallback sources for codec compatibility */}
+                <source src="/videos/gavel_scrub.mp4" type="video/mp4" />
+              </video>
             </div>
-            {/* Loading Indicator opcional caso demore a carregar o blob */}
-            {!isVideoLoaded && (
+            {/* Loading Indicator */}
+            {!isVideoReady && !loadError && (
               <div className="absolute inset-0 flex items-center justify-center">
                  <div className="w-10 h-10 border-4 border-[#ec4899]/20 border-t-[#00e6ff] rounded-full animate-spin" />
+              </div>
+            )}
+            {/* Error State */}
+            {loadError && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="text-center px-4">
+                  <p className="text-zinc-400 text-sm">{loadError}</p>
+                  <button 
+                    onClick={() => window.location.reload()} 
+                    className="mt-4 px-4 py-2 bg-[#ec4899]/20 text-[#ec4899] rounded-full text-sm hover:bg-[#ec4899]/30 transition-colors"
+                  >
+                    Tentar novamente
+                  </button>
+                </div>
               </div>
             )}
             
