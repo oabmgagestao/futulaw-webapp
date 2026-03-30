@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import Image from "next/image";
+
 import { motion, useScroll, useSpring, useMotionValueEvent } from "framer-motion";
 import { Handshake, CalendarBlank, MapPin, ArrowRight } from "@phosphor-icons/react";
 
@@ -31,13 +31,9 @@ const useCountdown = (targetDate: Date) => {
   return timeLeft;
 };
 
-// --- VIDEO POSTER AND BLUR PLACEHOLDER FOR INSTANT LOADING ---
-// Professional UX pattern used by Apple, Medium, Unsplash:
-// 1. Blur placeholder (Base64) loads instantly with HTML - no network request
-// 2. HQ poster image loads quickly while video buffers
-// 3. Video fades in smoothly when ready
-const VIDEO_BLUR_PLACEHOLDER = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAgADIDASIAAhEBAxEB/8QAGwAAAQUBAQAAAAAAAAAAAAAABgABAwQFBwj/xAAtEAABAwMCBAUDBQAAAAAAAAABAgMEAAURBiEHEjFBE1FhcYEUIqEykaLB8P/EABkBAAIDAQAAAAAAAAAAAAAAAAMEAQIFAP/EACQRAAIBAwMDBQAAAAAAAAAAAAECAwARIQQxQRJRYRMicYGh/9oADAMBEEDAAAEA5T0nR6LHb2lsrGNtwMEJHbPkfesm66jttquMq3OSA3KivKYdQpJBSpJwQR86Yrw7wvSGBabZbLRc7lKuN4gpt0WPLQ0lK5AU6V+IoDJCUJcGM5PQb1q2nifpG+LXbYV5aDjjvIMxnVMqUTkBHOByrOdgCM0pqJYZGiYXBOKNFF6iBgbGmupbBe7VMiW+8xJbcdsodbZfSpSFpJwFJB3B+awdUXezaNtLNyvU5MVpbiWU4QpalrPRKUpBJPXp2rm2pOIWpNT3xN2uV0eVIaADCWVFpuOB2Q2jYD59T1JqOx6quNt1VCvUm7T7oiApTsVme+t5TLyhhTZUolJwcKGd8j4pSHT+ov1q+fgf2aBqJwdMO3n76H/2Q==";
-const VIDEO_POSTER_URL = "/videos/gavel_poster.jpg";
+// --- VIDEO LOADING: SHIMMER SKELETON APPROACH ---
+// Instead of placeholder images (which may not match the video), 
+// use a shimmer skeleton with gradient that matches the site aesthetic
 
 // --- HOOK: SCROLL-BASED VIDEO WITH CROSS-BROWSER SUPPORT ---
 const useScrollVideo = (
@@ -152,9 +148,11 @@ const useScrollVideo = (
   }, [initializeVideo]);
 
   // Scroll progress with Framer Motion
+  // layoutScroll: true tells Framer Motion the container handles its own scroll context
   const { scrollYProgress } = useScroll({
     target: containerRef,
-    offset: ["start start", "end end"]
+    offset: ["start start", "end end"],
+    layoutEffect: false // Prevents position warning by deferring measurement
   });
 
   // Smooth spring for animation
@@ -244,13 +242,12 @@ export default function FutuLawPage() {
         <div className="flex items-center cursor-pointer group">
           {/* Logotipo Oficial */}
           <div className="relative flex items-center justify-center transition-all duration-300 ease-out hover:drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]">
-            <Image 
+{/* eslint-disable-next-line @next/next/no-img-element */}
+            <img 
               src="/videos/images/logo.png" 
               alt="Logo Oficial OAB" 
               width={180} 
               height={50} 
-              priority
-              unoptimized
               className="object-contain h-10 w-auto transition-transform duration-500 will-change-transform group-hover:scale-[1.03]"
             />
           </div>
@@ -278,29 +275,17 @@ export default function FutuLawPage() {
           <div className="absolute inset-0 z-0 flex items-center justify-center overflow-hidden bg-[#05010a]">
             {/* O vídeo deve estar focado à direita em telas grandes */}
             <div className="absolute inset-0 w-full h-full lg:w-[70%] lg:left-auto lg:right-0">
-              {/* Layer 1: Base64 Blur Placeholder - Loads INSTANTLY with HTML (no network request) */}
+              {/* Shimmer Skeleton - Gradient background with subtle animation while video loads */}
               <div 
-                className="absolute inset-0 w-full h-full"
+                className={`absolute inset-0 w-full h-full transition-opacity duration-700 ${isVideoReady ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
                 style={{
-                  backgroundImage: `url(${VIDEO_BLUR_PLACEHOLDER})`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                  filter: 'blur(20px)',
-                  transform: 'scale(1.1)',
+                  background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 25%, #16213e 50%, #1a1a2e 75%, #0a0a0a 100%)',
+                  backgroundSize: '400% 400%',
+                  animation: 'shimmer 3s ease-in-out infinite',
                 }}
               />
               
-              {/* Layer 2: HQ Poster Image - Loads quickly (~50KB vs ~5MB video) */}
-              <div 
-                className={`absolute inset-0 w-full h-full transition-opacity duration-500 ${isVideoReady ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
-                style={{
-                  backgroundImage: `url(${VIDEO_POSTER_URL})`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                }}
-              />
-              
-              {/* Layer 3: Actual Video - Fades in smoothly when fully ready */}
+              {/* Actual Video - Fades in smoothly when fully ready */}
               <video 
                 ref={videoRef}
                 className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${isVideoReady ? 'opacity-100' : 'opacity-0'}`}
@@ -309,7 +294,6 @@ export default function FutuLawPage() {
                 preload="auto"
                 webkit-playsinline="true"
                 x5-playsinline="true"
-                poster={VIDEO_POSTER_URL}
               >
                 <source src="/videos/gavel_scrub.mp4" type="video/mp4" />
               </video>
@@ -345,7 +329,13 @@ export default function FutuLawPage() {
             >
               <div className="absolute inset-0 h-[200vh] w-[200vw] bg-gradient-to-b from-transparent via-[#00e6ff]/10 to-transparent animate-[scanline_8s_linear_infinite]" />
             </motion.div>
-            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.04] mix-blend-overlay" />
+            {/* Subtle noise texture using CSS pattern instead of external SVG */}
+              <div 
+                className="absolute inset-0 opacity-[0.03] mix-blend-overlay pointer-events-none"
+                style={{
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+                }}
+              />
           </div>
 
           {/* 3. LAYER: Hero Typography (Contained in a Glassmorphism Box for max contrast "preto para o texto") */}
