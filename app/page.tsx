@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { motion, useTransform, useMotionValue } from "framer-motion";
+import React, { useState, useEffect, useRef } from "react";
+import { motion, useScroll, useSpring, useMotionValueEvent } from "framer-motion";
 import { Handshake, CalendarBlank, MapPin, ArrowRight } from "@phosphor-icons/react";
 
 // --- HOOK: COUNTDOWN TIMER ---
@@ -45,8 +45,69 @@ const TimeBlock = ({ label, value }: { label: string; value: number }) => (
 
 // --- MAIN NEXT.JS PAGE ---
 export default function FutuLawPage() {
-  const eventDate = new Date("2026-10-30T08:00:00");
+  const eventDate = new Date("2026-09-17T17:30:00");
   const { days, hours, minutes, seconds } = useCountdown(eventDate);
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [duration, setDuration] = useState(0);
+  const [isVideoLoaded, setIsVideoLoaded] = useState(false);
+
+  // Mágica para não travar: Transformar o vídeo em um Blob na memória
+  useEffect(() => {
+    let objectUrl = "";
+    
+    // Agora usando o vídeo re-renderizado com FFmpeg para scrubbing liso
+    const loadVideo = async () => {
+      try {
+        const response = await fetch("/videos/gavel_scrub.mp4");
+        const blob = await response.blob();
+        objectUrl = URL.createObjectURL(blob);
+        if (videoRef.current) {
+          videoRef.current.src = objectUrl;
+          videoRef.current.load();
+        }
+      } catch (err) {
+        console.error("Erro ao carregar o vídeo para o buffer", err);
+      }
+    };
+    
+    loadVideo();
+
+    return () => {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, []);
+
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ["start start", "end end"]
+  });
+
+  const smoothProgress = useSpring(scrollYProgress, {
+    stiffness: 40,
+    damping: 15,
+    restDelta: 0.001
+  });
+
+  useMotionValueEvent(smoothProgress, "change", (latest) => {
+    if (videoRef.current && duration > 0 && isVideoLoaded) {
+      // Usar Number.isFinite evita NaNs silenciosos se o vídeo estiver preparando
+      const targetTime = latest * duration;
+      if (Number.isFinite(targetTime)) {
+        videoRef.current.currentTime = targetTime;
+      }
+    }
+  });
+
+  const handleLoadedMetadata = () => {
+    if (videoRef.current) {
+      setDuration(videoRef.current.duration);
+      setIsVideoLoaded(true);
+      videoRef.current.pause();
+      videoRef.current.currentTime = 0;
+    }
+  };
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -59,24 +120,8 @@ export default function FutuLawPage() {
   };
 
   return (
-    <div className="relative min-h-[100dvh] w-full bg-[#05010a] text-zinc-100 overflow-hidden font-sans selection:bg-[#ec4899] selection:text-white flex flex-col items-center">
+    <div className="relative min-w-full bg-[#05010a] text-zinc-100 font-sans selection:bg-[#ec4899] selection:text-white">
       
-      {/* 1. LAYER: TECHNICAL MESH (MALHA TECNOLÓGICA) & ENERGY FLOW */}
-      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
-        {/* Animated Perspective Grid */}
-        <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 0.8 }}
-          transition={{ duration: 2 }}
-          className="absolute inset-0 w-[200vw] h-[200vh] -left-[50vw] -top-[50vh] bg-[linear-gradient(to_right,rgba(236,72,153,0.3)_1px,transparent_1px),linear-gradient(to_bottom,rgba(0,230,255,0.25)_1px,transparent_1px)] bg-[size:4.5rem_4.5rem] [transform:perspective(100vh)_rotateX(60deg)_translateY(-100px)] [mask-image:radial-gradient(ellipse_100%_100%_at_50%_50%,#000_20%,transparent_80%)]"
-        >
-          {/* Energy scanning line across the grid */}
-          <div className="absolute inset-0 h-[200vh] w-[200vw] bg-gradient-to-b from-transparent via-[#00e6ff]/10 to-transparent animate-[scanline_8s_linear_infinite]" />
-        </motion.div>
-        {/* Soft Noise Texture to prevent banding */}
-        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.04] mix-blend-overlay" />
-      </div>
-
       {/* HEADER MODERN */}
       <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 bg-[#05010a]/60 backdrop-blur-xl border-b border-white/5">
         <div className="flex items-center">
@@ -98,136 +143,173 @@ export default function FutuLawPage() {
         </button>
       </header>
 
-      {/* 2 & 3. LAYER: HERO CONTENT & NEON CIRCLE (Structurally Centered) */}
-      <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 min-h-[100dvh] flex flex-col items-center justify-center pt-32 pb-24">
-        
-        {/* HERO SECTION: Circle + Typography perfectly aligned */}
-        <div className="relative w-full flex flex-col items-center justify-center py-20 mb-8 mt-4">
+      {/* SCROLL-DRIVEN VIDEO HERO SECTION */}
+      <div ref={containerRef} className="relative h-[400vh] w-full">
+        {/* Sticky Container */}
+        <div className="sticky top-0 h-screen w-full overflow-hidden flex items-center bg-[#05010a]">
           
-          {/* Neon Tech Circle background - with dynamic electricity flow */}
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 1.5, ease: "easeOut" }}
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[100vw] sm:w-[80vw] md:w-[70vw] max-w-[650px] aspect-square z-0 rounded-full border border-white/5 flex items-center justify-center overflow-hidden pointer-events-none"
-            style={{
-              boxShadow: '0 0 140px -20px rgba(236,72,153,0.3), inset 0 0 100px -20px rgba(0,230,255,0.1)'
-            }}
-          >
-            {/* Spinning electric beam (Conic Gradient) */}
-            <div className="absolute inset-0 w-full h-full animate-[spin_4s_linear_infinite]"
-                 style={{ background: 'conic-gradient(from 0deg, transparent 60%, rgba(0,230,255,0.8) 80%, rgba(236,72,153,0.8) 100%)' }} />
-            
-            {/* Dark core mask to reveal only the border/flow */}
-            <div className="absolute inset-[2px] rounded-full bg-[#05010a]" />
-          </motion.div>
-
-          <motion.div 
-            variants={containerVariants}
-            initial="hidden"
-            animate="show"
-            className="relative z-10 flex flex-col items-center text-center max-w-4xl mx-auto w-full"
-          >
-            {/* Typographic Core */}
-            <motion.div variants={itemVariants} className="mb-4 flex flex-col items-center">
-              {/* Custom Styled Title approximating the logo */}
-              <div className="flex items-center justify-center select-none" aria-label="FUTULAW">
-                <h1 className="text-6xl md:text-8xl lg:text-[7rem] font-bold tracking-[0.1em] leading-none font-tech flex items-center">
-                  <span className="relative text-white flex">
-                    F
-                    {/* Hack geométrico para simular o corte na letra 'F' do logo */}
-                    <span className="absolute left-[-5%] top-[30%] w-[50%] h-[12%] bg-[#05010a]" />
-                  </span>
-                  <span className="text-white ml-[-1%]">UTU</span>
-                  <span className="text-[#de299d] ml-2">LAW</span>
-                </h1>
+          {/* 1. LAYER: Video Container (Full screen width, object pushed to right) */}
+          <div className="absolute inset-0 z-0 flex items-center justify-center overflow-hidden bg-[#05010a]">
+            {/* O vídeo deve estar focado à direita em telas grandes */}
+            <div className="absolute inset-0 w-full h-full lg:w-[70%] lg:left-auto lg:right-0">
+              <video 
+                ref={videoRef}
+                className={`w-full h-full object-cover transition-opacity duration-1000 ${isVideoLoaded ? 'opacity-100' : 'opacity-0'}`}
+                muted
+                playsInline
+                preload="auto"
+                onLoadedMetadata={handleLoadedMetadata}
+              />
+            </div>
+            {/* Loading Indicator opcional caso demore a carregar o blob */}
+            {!isVideoLoaded && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                 <div className="w-10 h-10 border-4 border-[#ec4899]/20 border-t-[#00e6ff] rounded-full animate-spin" />
               </div>
-              <div className="flex items-center justify-center gap-4 mt-6">
-                <span className="text-[#ec4899] font-tech text-xl md:text-3xl font-light tracking-widest px-8 py-2 rounded-full relative">
-                  <span className="opacity-90">2ª EDIÇÃO</span>
-                </span>
+            )}
+            
+            {/* Smooth transition gradients from dark left to video right - Esconde o lado esquerdo do vídeo perfeitamente */}
+            <div className="absolute inset-0 bg-gradient-to-r from-[#05010a] from-30% via-[#05010a]/80 to-transparent lg:w-[60%]" />
+            <div className="absolute inset-0 bg-gradient-to-b from-[#05010a] via-transparent to-[#05010a]" />
+          </div>
+
+          {/* 2. LAYER: Background Mesh (Restricted via mask to fade out over the video smoothly) */}
+          <div className="absolute inset-0 z-0 pointer-events-none" style={{ maskImage: 'linear-gradient(to right, black 30%, transparent 60%)', WebkitMaskImage: 'linear-gradient(to right, black 30%, transparent 60%)' }}>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.8 }}
+              transition={{ duration: 2 }}
+              className="absolute inset-0 w-[200vw] h-[200vh] -left-[50vw] -top-[50vh] bg-[linear-gradient(to_right,rgba(236,72,153,0.3)_1px,transparent_1px),linear-gradient(to_bottom,rgba(0,230,255,0.25)_1px,transparent_1px)] bg-[size:4.5rem_4.5rem] [transform:perspective(100vh)_rotateX(60deg)_translateY(-100px)] [mask-image:radial-gradient(ellipse_100%_100%_at_50%_50%,#000_20%,transparent_80%)]"
+            >
+              <div className="absolute inset-0 h-[200vh] w-[200vw] bg-gradient-to-b from-transparent via-[#00e6ff]/10 to-transparent animate-[scanline_8s_linear_infinite]" />
+            </motion.div>
+            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.04] mix-blend-overlay" />
+          </div>
+
+          {/* 3. LAYER: Hero Typography (Contained in a Glassmorphism Box for max contrast "preto para o texto") */}
+          <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-12 gap-8 h-full items-center">
+            <motion.div 
+              variants={containerVariants}
+              initial="hidden"
+              animate="show"
+              className="lg:col-span-6 xl:col-span-5 flex flex-col items-start text-left mt-20 p-8 md:p-10 rounded-[2.5rem] bg-[#05010a]/60 backdrop-blur-xl border border-white/5 shadow-[0_0_80px_-20px_rgba(0,0,0,0.8)] relative overflow-hidden"
+            >
+              {/* Inner subtle glow for the elegant text box */}
+              <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] to-transparent pointer-events-none" />
+              
+              <div className="relative z-10 flex flex-col w-full">
+                <motion.div variants={itemVariants} className="mb-6">
+                  <div className="flex items-center gap-4 mb-4">
+                    <span className="text-[#ec4899] font-tech text-sm md:text-base font-medium tracking-widest px-4 py-1.5 rounded-full border border-[#ec4899]/30 bg-[#ec4899]/10 backdrop-blur-sm shadow-[0_0_15px_-5px_rgba(236,72,153,0.4)]">
+                      3ª EDIÇÃO
+                    </span>
+                    <span className="text-zinc-400 text-[10px] md:text-xs tracking-[0.2em] uppercase font-semibold">
+                      Role a página para avançar
+                    </span>
+                  </div>
+                  
+                  <h1 className="text-6xl md:text-8xl lg:text-[6.5rem] xl:text-[7.5rem] font-bold tracking-[0.05em] leading-none font-tech flex flex-col items-start w-full drop-shadow-2xl">
+                    <span className="relative text-white flex">
+                      F
+                      <span className="absolute left-[-2%] top-[30%] w-[50%] h-[12%] bg-[#05010a]" />
+                      <span className="ml-[-1%]">UTU</span>
+                    </span>
+                    <span className="text-[#de299d] mt-2">LAW</span>
+                  </h1>
+                </motion.div>
+
+                <motion.p variants={itemVariants} className="text-base md:text-lg text-zinc-300 font-light max-w-[35ch] leading-relaxed border-l-2 border-[#00e6ff] pl-5 opacity-90 mt-2">
+                  Congresso de Gestão e de Inovação para Escritórios de Advocacia.
+                  <br /><br />
+                  A próxima revolução no direito já começou.
+                </motion.p>
               </div>
             </motion.div>
+          </div>
+          
+        </div>
+      </div>
 
-            {/* Subtext and Info Setup */}
-            <motion.p variants={itemVariants} className="text-base md:text-xl text-zinc-400 font-light max-w-[60ch] leading-relaxed mt-8">
-              Seminário de Gestão e de Inovação para Escritórios de Advocacia.
-            </motion.p>
+      {/* REMAINDER OF PAGE CONTENT */}
+      <div className="relative z-20 w-full bg-[#05010a] pb-24 overflow-hidden">
+        {/* Additional gradient separator */}
+        <div className="w-full h-32 bg-gradient-to-b from-transparent to-[#05010a] -mt-32 relative z-20" />
+        
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-12 flex flex-col items-center">
+          <motion.div 
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, amount: 0.1 }}
+            variants={containerVariants}
+            className="relative z-20 flex flex-col items-center w-full"
+          >
+            {/* Interactive Bento Row: Timer & Details */}
+            <motion.div variants={itemVariants} className="w-full grid grid-cols-1 md:grid-cols-12 gap-6 mt-4">
+              
+              {/* Countdown Master Card */}
+              <div className="md:col-span-8 p-6 md:p-8 rounded-[2rem] bg-white/[0.015] border border-white/5 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_20px_40px_-15px_rgba(0,0,0,0.5)] backdrop-blur-2xl">
+                 <div className="flex items-center justify-between mb-8 pb-4 border-b border-white/5">
+                   <div className="flex items-center gap-3">
+                     <div className="w-2 h-2 rounded-full bg-[#00e6ff] animate-pulse" />
+                     <span className="text-sm font-semibold tracking-wide text-zinc-300 uppercase">Tempo Restante</span>
+                   </div>
+                   <span className="font-mono text-xs text-[#ec4899] px-3 py-1 bg-[#ec4899]/10 rounded-full border border-[#ec4899]/20">
+                     17 e 18 de Setembro
+                   </span>
+                 </div>
+                 <div className="grid grid-cols-4 gap-3 md:gap-4">
+                   <TimeBlock label="Dias" value={days} />
+                   <TimeBlock label="Horas" value={hours} />
+                   <TimeBlock label="Min" value={minutes} />
+                   <TimeBlock label="Seg" value={seconds} />
+                 </div>
+              </div>
+
+              {/* Event Meta Details Card */}
+              <div className="md:col-span-4 p-6 md:p-8 flex flex-col justify-center rounded-[2rem] bg-white/[0.015] border border-white/5 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] backdrop-blur-xl">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="p-3 rounded-xl bg-zinc-900 border border-white/5">
+                    <MapPin size={24} weight="duotone" className="text-zinc-400" />
+                  </div>
+                  <div>
+                    <p className="font-mono text-lg text-zinc-200 tracking-widest leading-none">OAB</p>
+                    <p className="text-zinc-500 text-xs font-semibold uppercase tracking-wider mt-1">Maringá</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded-xl bg-zinc-900 border border-white/5">
+                    <CalendarBlank size={24} weight="duotone" className="text-[#00e6ff]" />
+                  </div>
+                  <div>
+                    <p className="text-zinc-200 text-sm font-medium tracking-wide">30 e 31/10</p>
+                    <p className="text-zinc-500 text-xs mt-1">Programação Oficial</p>
+                  </div>
+                </div>
+              </div>
+
+            </motion.div>
+
+            {/* Special Appretiation Row (Poster Reference) */}
+            <motion.div variants={itemVariants} className="w-full mt-6 p-8 rounded-[2rem] flex flex-col items-center justify-center text-center bg-gradient-to-b from-white/[0.02] to-transparent border border-white/5 backdrop-blur-lg">
+              <Handshake size={48} weight="light" className="text-zinc-300 mb-6" />
+              <h2 className="text-xl md:text-2xl font-semibold tracking-widest uppercase text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-500 max-w-2xl leading-snug">
+                Agradecemos nossos patrocinadores, expositores e parceiros
+              </h2>
+              
+              <p className="mt-4 text-sm text-zinc-500">Unindo inovação e tecnologia ao futuro do direito.</p>
+
+              <motion.button 
+                whileHover={{ scale: 1.02, y: -2 }}
+                whileTap={{ scale: 0.98 }}
+                className="mt-10 group relative flex items-center gap-4 bg-zinc-100 text-zinc-950 px-8 py-4 rounded-full font-semibold tracking-wide overflow-hidden transition-shadow hover:shadow-[0_0_40px_-10px_rgba(236,72,153,0.4)]"
+              >
+                Inscreva-se Agora
+                <ArrowRight size={18} weight="bold" className="group-hover:translate-x-1 transition-transform" />
+              </motion.button>
+            </motion.div>
+
           </motion.div>
         </div>
-        
-        <motion.div 
-          variants={containerVariants}
-          initial="hidden"
-          animate="show"
-          className="relative z-20 flex flex-col items-center w-full"
-        >
-          {/* Interactive Bento Row: Timer & Details */}
-          <motion.div variants={itemVariants} className="w-full grid grid-cols-1 md:grid-cols-12 gap-6 mt-4">
-            
-            {/* Countdown Master Card */}
-            <div className="md:col-span-8 p-6 md:p-8 rounded-[2rem] bg-white/[0.015] border border-white/5 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_20px_40px_-15px_rgba(0,0,0,0.5)] backdrop-blur-2xl">
-               <div className="flex items-center justify-between mb-8 pb-4 border-b border-white/5">
-                 <div className="flex items-center gap-3">
-                   <div className="w-2 h-2 rounded-full bg-[#00e6ff] animate-pulse" />
-                   <span className="text-sm font-semibold tracking-wide text-zinc-300 uppercase">Tempo Restante</span>
-                 </div>
-                 <span className="font-mono text-xs text-[#ec4899] px-3 py-1 bg-[#ec4899]/10 rounded-full border border-[#ec4899]/20">
-                   30 e 31 de Outubro
-                 </span>
-               </div>
-               <div className="grid grid-cols-4 gap-3 md:gap-4">
-                 <TimeBlock label="Dias" value={days} />
-                 <TimeBlock label="Horas" value={hours} />
-                 <TimeBlock label="Min" value={minutes} />
-                 <TimeBlock label="Seg" value={seconds} />
-               </div>
-            </div>
-
-            {/* Event Meta Details Card */}
-            <div className="md:col-span-4 p-6 md:p-8 flex flex-col justify-center rounded-[2rem] bg-white/[0.015] border border-white/5 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] backdrop-blur-xl">
-              <div className="flex items-center gap-4 mb-6">
-                <div className="p-3 rounded-xl bg-zinc-900 border border-white/5">
-                  <MapPin size={24} weight="duotone" className="text-zinc-400" />
-                </div>
-                <div>
-                  <p className="font-mono text-lg text-zinc-200 tracking-widest leading-none">OAB</p>
-                  <p className="text-zinc-500 text-xs font-semibold uppercase tracking-wider mt-1">Maringá</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-xl bg-zinc-900 border border-white/5">
-                  <CalendarBlank size={24} weight="duotone" className="text-[#00e6ff]" />
-                </div>
-                <div>
-                  <p className="text-zinc-200 text-sm font-medium tracking-wide">30 e 31/10</p>
-                  <p className="text-zinc-500 text-xs mt-1">Programação Oficial</p>
-                </div>
-              </div>
-            </div>
-
-          </motion.div>
-
-          {/* Special Appretiation Row (Poster Reference) */}
-          <motion.div variants={itemVariants} className="w-full mt-6 p-8 rounded-[2rem] flex flex-col items-center justify-center text-center bg-gradient-to-b from-white/[0.02] to-transparent border border-white/5 backdrop-blur-lg">
-            <Handshake size={48} weight="light" className="text-zinc-300 mb-6" />
-            <h2 className="text-xl md:text-2xl font-semibold tracking-widest uppercase text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-500 max-w-2xl leading-snug">
-              Agradecemos nossos patrocinadores, expositores e parceiros
-            </h2>
-            
-            <p className="mt-4 text-sm text-zinc-500">Unindo inovação e tecnologia ao futuro do direito.</p>
-
-            <motion.button 
-              whileHover={{ scale: 1.02, y: -2 }}
-              whileTap={{ scale: 0.98 }}
-              className="mt-10 group relative flex items-center gap-4 bg-zinc-100 text-zinc-950 px-8 py-4 rounded-full font-semibold tracking-wide overflow-hidden transition-shadow hover:shadow-[0_0_40px_-10px_rgba(236,72,153,0.4)]"
-            >
-              Inscreva-se Agora
-              <ArrowRight size={18} weight="bold" className="group-hover:translate-x-1 transition-transform" />
-            </motion.button>
-          </motion.div>
-
-        </motion.div>
       </div>
     </div>
   );
