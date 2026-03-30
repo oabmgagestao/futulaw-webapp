@@ -61,7 +61,7 @@ export default function FutuLawPage() {
   return (
     <div className="relative min-h-[100dvh] w-full bg-[#05010a] text-zinc-100 overflow-hidden font-sans selection:bg-[#ec4899] selection:text-white flex flex-col items-center">
       
-      {/* 1. LAYER: TECHNICAL MESH (MALHA TECNOLÓGICA) */}
+      {/* 1. LAYER: TECHNICAL MESH (MALHA TECNOLÓGICA) & ENERGY FLOW */}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
         {/* Animated Perspective Grid */}
         <motion.div 
@@ -69,7 +69,10 @@ export default function FutuLawPage() {
           animate={{ opacity: 0.8 }}
           transition={{ duration: 2 }}
           className="absolute inset-0 w-[200vw] h-[200vh] -left-[50vw] -top-[50vh] bg-[linear-gradient(to_right,rgba(236,72,153,0.3)_1px,transparent_1px),linear-gradient(to_bottom,rgba(0,230,255,0.25)_1px,transparent_1px)] bg-[size:4.5rem_4.5rem] [transform:perspective(100vh)_rotateX(60deg)_translateY(-100px)] [mask-image:radial-gradient(ellipse_100%_100%_at_50%_50%,#000_20%,transparent_80%)]"
-        />
+        >
+          {/* Energy scanning line across the grid */}
+          <div className="absolute inset-0 h-[200vh] w-[200vw] bg-gradient-to-b from-transparent via-[#00e6ff]/10 to-transparent animate-[scanline_8s_linear_infinite]" />
+        </motion.div>
         {/* Soft Noise Texture to prevent banding */}
         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.04] mix-blend-overlay" />
       </div>
@@ -101,17 +104,23 @@ export default function FutuLawPage() {
         {/* HERO SECTION: Circle + Typography perfectly aligned */}
         <div className="relative w-full flex flex-col items-center justify-center py-20 mb-8 mt-4">
           
-          {/* Neon Tech Circle background - Let it stay behind but WITHOUT solid bg inside! */}
+          {/* Neon Tech Circle background - with dynamic electricity flow */}
           <motion.div 
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 1.5, ease: "easeOut" }}
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[100vw] sm:w-[80vw] md:w-[70vw] max-w-[650px] aspect-square z-0 rounded-full border-[3px] border-transparent pointer-events-none"
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[100vw] sm:w-[80vw] md:w-[70vw] max-w-[650px] aspect-square z-0 rounded-full border border-white/5 flex items-center justify-center overflow-hidden pointer-events-none"
             style={{
-              background: 'linear-gradient(#05010a, #05010a) padding-box, linear-gradient(to top right, #00e6ff, #8b5cf6, #ec4899) border-box',
               boxShadow: '0 0 140px -20px rgba(236,72,153,0.3), inset 0 0 100px -20px rgba(0,230,255,0.1)'
             }}
-          />
+          >
+            {/* Spinning electric beam (Conic Gradient) */}
+            <div className="absolute inset-0 w-full h-full animate-[spin_4s_linear_infinite]"
+                 style={{ background: 'conic-gradient(from 0deg, transparent 60%, rgba(0,230,255,0.8) 80%, rgba(236,72,153,0.8) 100%)' }} />
+            
+            {/* Dark core mask to reveal only the border/flow */}
+            <div className="absolute inset-[2px] rounded-full bg-[#05010a]" />
+          </motion.div>
 
           <motion.div 
             variants={containerVariants}
@@ -120,12 +129,20 @@ export default function FutuLawPage() {
             className="relative z-10 flex flex-col items-center text-center max-w-4xl mx-auto w-full"
           >
             {/* Typographic Core */}
-            <motion.div variants={itemVariants} className="mb-4">
-              {/* Using the Orbitron Google Font that closely mimics the "Square tech" look of FUTULAW */}
-              <h1 className="text-7xl md:text-8xl lg:text-9xl font-bold tracking-tight leading-[0.9] font-tech text-white">
-                FUTU<span className="text-[#e22fa1]">L</span><span className="text-[#cd2891]">A</span><span className="text-[#b92182]">W</span>
-              </h1>
-              <div className="flex items-center justify-center gap-4 mt-8">
+            <motion.div variants={itemVariants} className="mb-4 flex flex-col items-center">
+              {/* Custom Styled Title approximating the logo */}
+              <div className="flex items-center justify-center select-none" aria-label="FUTULAW">
+                <h1 className="text-6xl md:text-8xl lg:text-[7rem] font-bold tracking-[0.1em] leading-none font-tech flex items-center">
+                  <span className="relative text-white flex">
+                    F
+                    {/* Hack geométrico para simular o corte na letra 'F' do logo */}
+                    <span className="absolute left-[-5%] top-[30%] w-[50%] h-[12%] bg-[#05010a]" />
+                  </span>
+                  <span className="text-white ml-[-1%]">UTU</span>
+                  <span className="text-[#de299d] ml-2">LAW</span>
+                </h1>
+              </div>
+              <div className="flex items-center justify-center gap-4 mt-6">
                 <span className="text-[#ec4899] font-tech text-xl md:text-3xl font-light tracking-widest px-8 py-2 rounded-full relative">
                   <span className="opacity-90">2ª EDIÇÃO</span>
                 </span>

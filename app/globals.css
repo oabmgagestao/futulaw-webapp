@@ -17,6 +17,15 @@ body {
   color: var(--foreground);
 }
 
+@keyframes scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+
+@keyframes shimmer {
+  100% { transform: translateX(100%); }
+}
+
 /* Custom Webkit scrollbar for premium feel */
 ::-webkit-scrollbar {
   width: 8px;
