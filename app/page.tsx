@@ -282,7 +282,7 @@ export default function FutuLawPage() {
           </div>
           
         </div>
-      </div>
+      </section>
 
       {/* REMAINDER OF PAGE CONTENT */}
       <div className="relative z-20 w-full bg-[#05010a] pb-24 overflow-hidden">
