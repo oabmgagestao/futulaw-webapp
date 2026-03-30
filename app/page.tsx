@@ -45,7 +45,7 @@ const TimeBlock = ({ label, value }: { label: string; value: number }) => (
 
 // --- MAIN NEXT.JS PAGE ---
 export default function FutuLawPage() {
-  const eventDate = new Date("2026-10-30T08:00:00");
+  const eventDate = new Date("2026-09-17T17:30:00");
   const { days, hours, minutes, seconds } = useCountdown(eventDate);
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -201,7 +201,7 @@ export default function FutuLawPage() {
                 <motion.div variants={itemVariants} className="mb-6">
                   <div className="flex items-center gap-4 mb-4">
                     <span className="text-[#ec4899] font-tech text-sm md:text-base font-medium tracking-widest px-4 py-1.5 rounded-full border border-[#ec4899]/30 bg-[#ec4899]/10 backdrop-blur-sm shadow-[0_0_15px_-5px_rgba(236,72,153,0.4)]">
-                      2ª EDIÇÃO
+                      3ª EDIÇÃO
                     </span>
                     <span className="text-zinc-400 text-[10px] md:text-xs tracking-[0.2em] uppercase font-semibold">
                       Role a página para avançar
@@ -219,7 +219,7 @@ export default function FutuLawPage() {
                 </motion.div>
 
                 <motion.p variants={itemVariants} className="text-base md:text-lg text-zinc-300 font-light max-w-[35ch] leading-relaxed border-l-2 border-[#00e6ff] pl-5 opacity-90 mt-2">
-                  Seminário de Gestão e de Inovação para Escritórios de Advocacia.
+                  Congresso de Gestão e de Inovação para Escritórios de Advocacia.
                   <br /><br />
                   A próxima revolução no direito já começou.
                 </motion.p>
@@ -254,7 +254,7 @@ export default function FutuLawPage() {
                      <span className="text-sm font-semibold tracking-wide text-zinc-300 uppercase">Tempo Restante</span>
                    </div>
                    <span className="font-mono text-xs text-[#ec4899] px-3 py-1 bg-[#ec4899]/10 rounded-full border border-[#ec4899]/20">
-                     30 e 31 de Outubro
+                     17 e 18 de Setembro
                    </span>
                  </div>
                  <div className="grid grid-cols-4 gap-3 md:gap-4">
