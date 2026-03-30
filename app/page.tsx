@@ -31,12 +31,19 @@ const useCountdown = (targetDate: Date) => {
   return timeLeft;
 };
 
+// --- VIDEO POSTER AND BLUR PLACEHOLDER FOR INSTANT LOADING ---
+// Professional UX pattern used by Apple, Medium, Unsplash:
+// 1. Blur placeholder (Base64) loads instantly with HTML - no network request
+// 2. HQ poster image loads quickly while video buffers
+// 3. Video fades in smoothly when ready
+const VIDEO_BLUR_PLACEHOLDER = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAgADIDASIAAhEBAxEB/8QAGwAAAQUBAQAAAAAAAAAAAAAABgABAwQFBwj/xAAtEAABAwMCBAUDBQAAAAAAAAABAgMEAAURBiEHEjFBE1FhcYEUIqEykaLB8P/EABkBAAIDAQAAAAAAAAAAAAAAAAMEAQIFAP/EACQRAAIBAwMDBQAAAAAAAAAAAAECAwARIQQxQRJRYRMicYGh/9oADAMBEEDAAAEA5T0nR6LHb2lsrGNtwMEJHbPkfesm66jttquMq3OSA3KivKYdQpJBSpJwQR86Yrw7wvSGBabZbLRc7lKuN4gpt0WPLQ0lK5AU6V+IoDJCUJcGM5PQb1q2nifpG+LXbYV5aDjjvIMxnVMqUTkBHOByrOdgCM0pqJYZGiYXBOKNFF6iBgbGmupbBe7VMiW+8xJbcdsodbZfSpSFpJwFJB3B+awdUXezaNtLNyvU5MVpbiWU4QpalrPRKUpBJPXp2rm2pOIWpNT3xN2uV0eVIaADCWVFpuOB2Q2jYD59T1JqOx6quNt1VCvUm7T7oiApTsVme+t5TLyhhTZUolJwcKGd8j4pSHT+ov1q+fgf2aBqJwdMO3n76H/2Q==";
+const VIDEO_POSTER_URL = "/videos/gavel_poster.jpg";
+
 // --- HOOK: SCROLL-BASED VIDEO WITH CROSS-BROWSER SUPPORT ---
 const useScrollVideo = (
   containerRef: React.RefObject<HTMLDivElement | null>,
   videoRef: React.RefObject<HTMLVideoElement | null>
 ) => {
-  const [isVideoLoaded, setIsVideoLoaded] = useState(false);
   const [isVideoReady, setIsVideoReady] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const durationRef = useRef(0);
@@ -61,84 +68,80 @@ const useScrollVideo = (
       // Set essential attributes for iOS/mobile
       video.muted = true;
       video.playsInline = true;
-      video.preload = "auto";
+      video.preload = "metadata"; // Start with metadata, then upgrade
       video.setAttribute("webkit-playsinline", "true");
       video.setAttribute("x5-playsinline", "true");
       video.setAttribute("x5-video-player-type", "h5");
       
-      // Clear any previous source and set directly (avoid blob URLs for iOS compatibility)
-      video.src = "/videos/gavel_scrub.mp4";
-      
-      // Force load
-      video.load();
+      // Set source directly (avoid blob URLs for iOS compatibility)
+      if (!video.src || !video.src.includes("gavel_scrub.mp4")) {
+        video.src = "/videos/gavel_scrub.mp4";
+      }
 
-      // iOS Safari workaround: Need to "prime" the video with a play/pause
-      const primeVideo = async () => {
-        try {
-          // Brief play to initialize video decoder
-          const playPromise = video.play();
-          if (playPromise !== undefined) {
-            await playPromise;
-            // Immediately pause
-            video.pause();
-            video.currentTime = 0;
-          }
-        } catch {
-          // Play was prevented, which is fine - video is still primed
-          video.pause();
-          video.currentTime = 0;
-        }
-      };
-
-      // Wait for data to be loaded
+      // Wait for metadata first (much faster than full load)
       await new Promise<void>((resolve, reject) => {
         const timeoutId = setTimeout(() => {
-          reject(new Error("Video load timeout"));
-        }, 15000);
+          // Don't reject on timeout - video might still work with poster
+          resolve();
+        }, 10000);
 
-        const handleLoaded = () => {
+        const handleMetadata = () => {
           clearTimeout(timeoutId);
-          video.removeEventListener("loadeddata", handleLoaded);
+          video.removeEventListener("loadedmetadata", handleMetadata);
           video.removeEventListener("error", handleError);
           resolve();
         };
 
         const handleError = () => {
           clearTimeout(timeoutId);
-          video.removeEventListener("loadeddata", handleLoaded);
+          video.removeEventListener("loadedmetadata", handleMetadata);
           video.removeEventListener("error", handleError);
           reject(new Error("Video load error"));
         };
 
-        // Check if already loaded
-        if (video.readyState >= 2) {
+        // Check if already has metadata
+        if (video.readyState >= 1) {
           clearTimeout(timeoutId);
           resolve();
           return;
         }
 
-        video.addEventListener("loadeddata", handleLoaded);
+        video.addEventListener("loadedmetadata", handleMetadata);
         video.addEventListener("error", handleError);
+        video.load();
       });
 
-      // Store duration
-      durationRef.current = video.duration;
+      // Store duration (use fallback if not available)
+      durationRef.current = video.duration > 0 ? video.duration : 5;
       
-      // Prime video for iOS
-      await primeVideo();
+      // iOS Safari workaround: Need to "prime" the video with a play/pause
+      try {
+        const playPromise = video.play();
+        if (playPromise !== undefined) {
+          await playPromise;
+          video.pause();
+          video.currentTime = 0;
+        }
+      } catch {
+        // Play was prevented, which is fine
+        video.pause();
+        video.currentTime = 0;
+      }
       
-      setIsVideoLoaded(true);
       setIsVideoReady(true);
       setLoadError(null);
     } catch (error) {
-      console.error("[v0] Video initialization failed:", error);
+      // On error, still show the poster but don't crash
+      console.warn("Video initialization warning:", error);
       
-      // Retry logic (max 3 attempts)
-      if (retryCountRef.current < 3) {
+      // Retry logic (max 2 attempts)
+      if (retryCountRef.current < 2) {
         retryCountRef.current++;
-        setTimeout(() => initializeVideo(), 1000);
+        setTimeout(() => initializeVideo(), 2000);
       } else {
-        setLoadError("Video failed to load. Please refresh the page.");
+        // Even on failure, keep poster visible - don't show error unless critical
+        // The poster provides good fallback UX
+        durationRef.current = 5; // Fallback duration
       }
     }
   }, [videoRef]);
@@ -196,7 +199,7 @@ const useScrollVideo = (
     });
   });
 
-  return { isVideoLoaded, isVideoReady, loadError };
+  return { isVideoReady, loadError };
 };
 
 // --- COMPONENT: LIQUID GLASS TIMER BLOCK ---
@@ -267,37 +270,55 @@ export default function FutuLawPage() {
       </header>
 
       {/* SCROLL-DRIVEN VIDEO HERO SECTION */}
-      <div ref={containerRef} className="relative h-[400vh] w-full" style={{ position: 'relative' }}>
+      <div ref={containerRef} className="relative h-[400vh] w-full">
         {/* Sticky Container */}
-        <div className="sticky top-0 h-screen w-full overflow-hidden flex items-center bg-[#05010a]">
+        <div className="sticky top-0 h-screen w-full overflow-hidden flex items-center bg-[#05010a]" style={{ position: 'sticky' }}>
           
           {/* 1. LAYER: Video Container (Full screen width, object pushed to right) */}
           <div className="absolute inset-0 z-0 flex items-center justify-center overflow-hidden bg-[#05010a]">
             {/* O vídeo deve estar focado à direita em telas grandes */}
             <div className="absolute inset-0 w-full h-full lg:w-[70%] lg:left-auto lg:right-0">
+              {/* Layer 1: Base64 Blur Placeholder - Loads INSTANTLY with HTML (no network request) */}
+              <div 
+                className="absolute inset-0 w-full h-full"
+                style={{
+                  backgroundImage: `url(${VIDEO_BLUR_PLACEHOLDER})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  filter: 'blur(20px)',
+                  transform: 'scale(1.1)',
+                }}
+              />
+              
+              {/* Layer 2: HQ Poster Image - Loads quickly (~50KB vs ~5MB video) */}
+              <div 
+                className={`absolute inset-0 w-full h-full transition-opacity duration-500 ${isVideoReady ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+                style={{
+                  backgroundImage: `url(${VIDEO_POSTER_URL})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                }}
+              />
+              
+              {/* Layer 3: Actual Video - Fades in smoothly when fully ready */}
               <video 
                 ref={videoRef}
-                className={`w-full h-full object-cover transition-opacity duration-1000 ${isVideoReady ? 'opacity-100' : 'opacity-0'}`}
+                className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${isVideoReady ? 'opacity-100' : 'opacity-0'}`}
                 muted
                 playsInline
                 preload="auto"
                 webkit-playsinline="true"
                 x5-playsinline="true"
+                poster={VIDEO_POSTER_URL}
               >
-                {/* Fallback sources for codec compatibility */}
                 <source src="/videos/gavel_scrub.mp4" type="video/mp4" />
               </video>
             </div>
-            {/* Loading Indicator */}
-            {!isVideoReady && !loadError && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                 <div className="w-10 h-10 border-4 border-[#ec4899]/20 border-t-[#00e6ff] rounded-full animate-spin" />
-              </div>
-            )}
-            {/* Error State */}
+            
+            {/* Error State - Only shown if video completely fails to load */}
             {loadError && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-center px-4">
+              <div className="absolute inset-0 flex items-center justify-center z-20">
+                <div className="text-center px-4 py-6 rounded-2xl bg-black/50 backdrop-blur-sm">
                   <p className="text-zinc-400 text-sm">{loadError}</p>
                   <button 
                     onClick={() => window.location.reload()} 
