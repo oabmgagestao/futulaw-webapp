@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
-import { motion, useScroll, useSpring, useMotionValueEvent } from "framer-motion";
+import { motion, useScroll, useSpring, useMotionValueEvent, AnimatePresence } from "framer-motion";
 import { Handshake, CalendarBlank, MapPin, ArrowRight } from "@phosphor-icons/react";
 
 // --- HOOK: COUNTDOWN TIMER ---
@@ -171,12 +171,29 @@ export default function FutuLawPage() {
                 onLoadedMetadata={handleLoadedMetadata}
               />
             </div>
-            {/* Loading Indicator opcional caso demore a carregar o blob */}
-            {!isVideoLoaded && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                 <div className="w-10 h-10 border-4 border-[#ec4899]/20 border-t-[#00e6ff] rounded-full animate-spin" />
-              </div>
-            )}
+            {/* Loading Indicator elegante com transition e fallback bonito para atraso de rede */}
+            <AnimatePresence>
+              {!isVideoLoaded && (
+                <motion.div 
+                  initial={{ opacity: 1, backdropFilter: "blur(10px)" }}
+                  exit={{ opacity: 0, backdropFilter: "blur(0px)", transition: { duration: 1.5, ease: "easeInOut" } }}
+                  className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-[#05010a]/50 backdrop-blur-md overflow-hidden lg:w-[70%] lg:left-auto lg:right-0"
+                >
+                  <motion.div
+                    animate={{ scale: [0.98, 1.02, 0.98], opacity: [0.6, 1, 0.6] }}
+                    transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+                    className="relative flex flex-col items-center"
+                  >
+                    <div className="w-16 h-16 rounded-full border border-white/10 flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(236,72,153,0.15)] bg-white/5">
+                      <div className="w-8 h-8 border-2 border-transparent border-t-[#ec4899] border-b-[#00e6ff] rounded-full animate-spin" />
+                    </div>
+                    <span className="text-xs font-semibold tracking-[0.3em] uppercase text-transparent bg-clip-text bg-gradient-to-r from-zinc-300 to-zinc-500 animate-pulse">
+                      Iniciando Experiência
+                    </span>
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
             
             {/* Smooth transition gradients from dark left to video right - Esconde o lado esquerdo do vídeo perfeitamente */}
             <div className="absolute inset-0 bg-gradient-to-r from-[#05010a] from-30% via-[#05010a]/80 to-transparent lg:w-[60%]" />
@@ -210,7 +227,7 @@ export default function FutuLawPage() {
               <div className="relative z-10 flex flex-col w-full">
                 <motion.div variants={itemVariants} className="mb-6">
                   <div className="flex items-center gap-4 mb-4">
-                    <span className="text-[#ec4899] font-tech text-sm md:text-base font-medium tracking-widest px-4 py-1.5 rounded-full border border-[#ec4899]/30 bg-[#ec4899]/10 backdrop-blur-sm shadow-[0_0_15px_-5px_rgba(236,72,153,0.4)]">
+                    <span className="text-[#ec4899] font-semibold text-sm md:text-base font-medium tracking-widest px-4 py-1.5 rounded-full border border-[#ec4899]/30 bg-[#ec4899]/10 backdrop-blur-sm shadow-[0_0_15px_-5px_rgba(236,72,153,0.4)]">
                       3ª EDIÇÃO
                     </span>
                     <span className="text-zinc-400 text-[10px] md:text-xs tracking-[0.2em] uppercase font-semibold">
