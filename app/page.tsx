@@ -311,9 +311,6 @@ useMotionValueEvent(smoothProgress, "change", (latest) => {
                      <div className="w-2 h-2 rounded-full bg-[#00e6ff] animate-pulse" />
                      <span className="text-sm font-semibold tracking-wide text-zinc-300 uppercase">Tempo Restante</span>
                    </div>
-                   <span className="font-mono text-xs text-[#ec4899] px-3 py-1 bg-[#ec4899]/10 rounded-full border border-[#ec4899]/20">
-                     17 e 18 de Setembro
-                   </span>
                  </div>
                  <div className="grid grid-cols-4 gap-3 md:gap-4">
                    <TimeBlock label="Dias" value={days} />
@@ -339,7 +336,7 @@ useMotionValueEvent(smoothProgress, "change", (latest) => {
                     <CalendarBlank size={24} weight="duotone" className="text-[#00e6ff]" />
                   </div>
                   <div>
-                    <p className="text-zinc-200 text-sm font-medium tracking-wide">30 e 31/10</p>
+                    <p className="text-zinc-200 text-sm font-medium tracking-wide">17 e 18/09</p>
                     <p className="text-zinc-500 text-xs mt-1">Programação Oficial</p>
                   </div>
                 </div>
