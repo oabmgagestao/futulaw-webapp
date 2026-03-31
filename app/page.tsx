@@ -46,6 +46,11 @@ const TimeBlock = ({ label, value }: { label: string; value: number }) => (
 
 // --- MAIN NEXT.JS PAGE ---
 export default function FutuLawPage() {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    setIsMobile(window.innerWidth < 768);
+  }, []);
   const eventDate = new Date("2026-09-17T17:30:00");
   const { days, hours, minutes, seconds } = useCountdown(eventDate);
 
@@ -91,15 +96,24 @@ export default function FutuLawPage() {
     restDelta: 0.001
   });
 
-  useMotionValueEvent(smoothProgress, "change", (latest) => {
-    if (videoRef.current && duration > 0 && isVideoLoaded) {
-      // Usar Number.isFinite evita NaNs silenciosos se o vídeo estiver preparando
-      const targetTime = latest * duration;
-      if (Number.isFinite(targetTime)) {
-        videoRef.current.currentTime = targetTime;
-      }
-    }
-  });
+let lastUpdate = 0;
+
+useMotionValueEvent(smoothProgress, "change", (latest) => {
+  if (!videoRef.current || duration === 0 || !isVideoLoaded) return;
+  if (isMobile) return;
+  const now = performance.now();
+  if (now - lastUpdate < 30) return; // limita ~30fps
+
+  lastUpdate = now;
+
+  const targetTime = Math.min(
+    duration,
+    Math.max(0, latest * duration)
+  );
+
+  videoRef.current.currentTime += 
+  (targetTime - videoRef.current.currentTime) * 0.2;
+});
 
   const handleLoadedMetadata = () => {
     if (videoRef.current) {
@@ -167,7 +181,7 @@ export default function FutuLawPage() {
                 className={`w-full h-full object-cover transition-opacity duration-1000 ${isVideoLoaded ? 'opacity-100' : 'opacity-0'}`}
                 muted
                 playsInline
-                preload="auto"
+                preload="metadata"
                 onLoadedMetadata={handleLoadedMetadata}
               />
             </div>
