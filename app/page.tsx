@@ -46,6 +46,19 @@ const TimeBlock = ({ label, value }: { label: string; value: number }) => (
 
 // --- MAIN NEXT.JS PAGE ---
 export default function FutuLawPage() {
+  useEffect(() => {
+  const video = videoRef.current;
+  if (!video) return;
+
+  // Se o vídeo já carregou os metadados antes do React estar pronto
+  if (video.readyState >= 1) { 
+    handleLoadedMetadata();
+  }
+
+  // Fallback: se o vídeo demorar, garantimos que ele não fique travado
+  // Algumas vezes o vídeo precisa de um "empurrão" para renderizar o primeiro frame
+  video.currentTime = 0.001; 
+  }, []);
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -116,11 +129,12 @@ useMotionValueEvent(smoothProgress, "change", (latest) => {
 });
 
   const handleLoadedMetadata = () => {
-    if (videoRef.current) {
-      setDuration(videoRef.current.duration);
-      setIsVideoLoaded(true);
-      videoRef.current.pause();
-      videoRef.current.currentTime = 0;
+  if (videoRef.current) {
+    setDuration(videoRef.current.duration);
+    setIsVideoLoaded(true);
+    
+    // Força o vídeo a se posicionar no início para evitar tela preta
+    videoRef.current.currentTime = 0;
     }
   };
 
@@ -178,10 +192,13 @@ useMotionValueEvent(smoothProgress, "change", (latest) => {
             <div className="absolute inset-0 w-full h-full lg:w-[70%] lg:left-auto lg:right-0">
               <video 
                 ref={videoRef}
-                className={`w-full h-full object-cover transition-opacity duration-1000 ${isVideoLoaded ? 'opacity-100' : 'opacity-0'}`}
+                src="/videos/gavel_scrub.mp4"
+                className={`w-full h-full object-cover transition-opacity duration-1000 ${
+                  isVideoLoaded ? 'opacity-100' : 'opacity-0'
+                }`}
                 muted
                 playsInline
-                preload="metadata"
+                preload="auto" // Força o carregamento prévio
                 onLoadedMetadata={handleLoadedMetadata}
               />
             </div>
@@ -260,7 +277,7 @@ useMotionValueEvent(smoothProgress, "change", (latest) => {
                 </motion.div>
 
                 <motion.p variants={itemVariants} className="text-base md:text-lg text-zinc-300 font-light max-w-[35ch] leading-relaxed border-l-2 border-[#00e6ff] pl-5 opacity-90 mt-2">
-                  Congresso de Gestão e de Inovação para Escritórios de Advocacia.
+                  Congresso de Gestão e de Inovação na Advocacia.
                   <br /><br />
                   A próxima revolução no direito já começou.
                 </motion.p>

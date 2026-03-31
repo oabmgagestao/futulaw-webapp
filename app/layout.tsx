@@ -16,7 +16,7 @@ const orbitron = Orbitron({
 
 export const metadata: Metadata = {
   title: 'FUTULAW - 3ª Edição | Inovação e Gestão',
-  description: 'Congresso de Gestão e de Inovação para Escritórios de Advocacia - OAB Maringá/PR',
+  description: 'Congresso de Gestão e de Inovação na Advocacia - OAB Maringá/PR',
 };
 
 export default function RootLayout({
