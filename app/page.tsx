@@ -71,32 +71,49 @@ export default function FutuLawPage() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [duration, setDuration] = useState(0);
   const [isVideoLoaded, setIsVideoLoaded] = useState(false);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const imagesRef = useRef<HTMLImageElement[]>([]); // Cache das imagens na memória
+  const [isCanvasLoaded, setIsCanvasLoaded] = useState(false);
+  
+  const frameCount = 153; // Substitua pelo número exato de frames gerados no FFmpeg
 
   // Mágica para não travar: Transformar o vídeo em um Blob na memória
+  // 1. Pré-carregamento das imagens em WebP
   useEffect(() => {
-    let objectUrl = "";
-    
-    // Agora usando o vídeo re-renderizado com FFmpeg para scrubbing liso
-    const loadVideo = async () => {
-      try {
-        const response = await fetch("/videos/gavel_scrub.mp4");
-        const blob = await response.blob();
-        objectUrl = URL.createObjectURL(blob);
-        if (videoRef.current) {
-          videoRef.current.src = objectUrl;
-          videoRef.current.load();
-        }
-      } catch (err) {
-        console.error("Erro ao carregar o vídeo para o buffer", err);
-      }
-    };
-    
-    loadVideo();
+    const preloadImages = async () => {
+      let loadedCount = 0;
+      const imgArray: HTMLImageElement[] = [];
 
-    return () => {
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
+      for (let i = 1; i <= frameCount; i++) {
+        const img = new window.Image();
+        // Garante o formato com 4 zeros (ex: frame_0001.webp)
+        const frameNum = i.toString().padStart(4, '0');
+        img.src = `/videos/frames/frame_${frameNum}.webp`;
+
+        img.onload = () => {
+          loadedCount++;
+          if (loadedCount === frameCount) {
+            setIsCanvasLoaded(true);
+            
+            // Desenha o primeiro frame no canvas assim que tudo carregar
+            const canvas = canvasRef.current;
+            const ctx = canvas?.getContext('2d');
+            if (canvas && ctx && imgArray[0]) {
+              // Ajusta a resolução interna do canvas para o tamanho da imagem
+              canvas.width = imgArray[0].width;
+              canvas.height = imgArray[0].height;
+              ctx.drawImage(imgArray[0], 0, 0);
+            }
+          }
+        };
+        imgArray.push(img);
+      }
+      // Salva no ref para não causar re-renders e manter acesso rápido
+      imagesRef.current = imgArray;
     };
-  }, []);
+
+    preloadImages();
+  }, [frameCount]);
 
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -108,6 +125,31 @@ export default function FutuLawPage() {
     damping: 15,
     restDelta: 0.001
   });
+
+  // 2. Animação no Canvas atrelada ao Scroll
+  useMotionValueEvent(smoothProgress, "change", (latest) => {
+    if (!isCanvasLoaded || !canvasRef.current || imagesRef.current.length === 0) return;
+    
+    // REMOVIDO o "if (isMobile) return;". Agora roda liso em qualquer dispositivo!
+
+    // Calcula qual frame deve aparecer (0 até frameCount - 1)
+    const frameIndex = Math.min(
+      frameCount - 1,
+      Math.max(0, Math.floor(latest * frameCount))
+    );
+
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    const img = imagesRef.current[frameIndex];
+
+    if (ctx && img) {
+      // requestAnimationFrame garante que o desenho ocorra no timing perfeito da tela
+      requestAnimationFrame(() => {
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      });
+    }
+  });
+
 
 let lastUpdate = 0;
 
@@ -189,22 +231,18 @@ useMotionValueEvent(smoothProgress, "change", (latest) => {
           {/* 1. LAYER: Video Container (Full screen width, object pushed to right) */}
           <div className="absolute inset-0 z-0 flex items-center justify-center overflow-hidden bg-[#05010a]">
             {/* O vídeo deve estar focado à direita em telas grandes */}
+            {/* O canvas deve estar focado à direita em telas grandes */}
             <div className="absolute inset-0 w-full h-full lg:w-[70%] lg:left-auto lg:right-0">
-              <video 
-                ref={videoRef}
-                src="/videos/gavel_scrub.mp4"
+              <canvas 
+                ref={canvasRef}
                 className={`w-full h-full object-cover transition-opacity duration-1000 ${
-                  isVideoLoaded ? 'opacity-100' : 'opacity-0'
+                  isCanvasLoaded ? 'opacity-100' : 'opacity-0'
                 }`}
-                muted
-                playsInline
-                preload="auto" // Força o carregamento prévio
-                onLoadedMetadata={handleLoadedMetadata}
               />
             </div>
             {/* Loading Indicator elegante com transition e fallback bonito para atraso de rede */}
             <AnimatePresence>
-              {!isVideoLoaded && (
+              {!isCanvasLoaded && (
                 <motion.div 
                   initial={{ opacity: 1, backdropFilter: "blur(10px)" }}
                   exit={{ opacity: 0, backdropFilter: "blur(0px)", transition: { duration: 1.5, ease: "easeInOut" } }}
